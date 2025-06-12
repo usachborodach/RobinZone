@@ -3,7 +3,7 @@ import common
 import random
 
 start_situation = 'Начало'
-use_typewrite = False
+use_typewrite = True
 
 situations = common.load_situations()
 current_situation = start_situation
@@ -14,7 +14,7 @@ while True:
         common.typewrite(text)
     else:
         print(text)
-    print(f"\n{'=' * 64}\nВаши действия:")
+    print(f"\n\n{'=' * 80}\n    Ваши действия:")
     actions = situations[current_situation]['actions']
     random.shuffle(actions)    
     for index, action in enumerate(actions):

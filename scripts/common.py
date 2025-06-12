@@ -12,7 +12,7 @@ def load_situations():
     for filename in os.listdir(situations_path):
         filepath = os.path.join(situations_path, filename)
         situation = yaml.safe_load(open(filepath))
-        situation['text'] = remove_slash_n_from_tail(situation['text'])
+        situation['text'] = '    ' + remove_slash_n_from_tail(situation['text']).replace('\n', '\n    ')
         situations[filename.replace('.yml', '')] = situation
     return situations
 
