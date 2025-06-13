@@ -1,6 +1,6 @@
 actions: 
 - text: Конец игры
-  situation: Конец_игры
+  next: Конец_игры
   
 text: |
   БЕЗДЕЙСТВИЕ
