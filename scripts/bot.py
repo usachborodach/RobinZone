@@ -1,48 +1,49 @@
+import os
+import common
+base_path = os.path.dirname(__file__)
+SCENES = common.load_situations()
+start_scene = 'nachalo'
+
+
 #!/usr/bin/env python3.10
-import logging
-from collections.abc import Mapping
-from typing import Any, Optional
-from telegram import (
-    Update,
-    InlineKeyboardButton,
-    InlineKeyboardMarkup,
-)
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, Message
 from telegram.ext import (
     Application,
     CommandHandler,
     CallbackQueryHandler,
     ContextTypes,
 )
-
-import common
-SCENES = common.load_situations()
-start_scene = 'Начало'
+from typing import Any, Optional, Dict, List
+import logging
+from pathlib import Path
+import json
 
 # Настройка логирования
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    level=logging.DEBUG
+    level=logging.INFO,
+    handlers=[
+        logging.FileHandler("bot.log"),
+        logging.StreamHandler()
+    ]
 )
 logger = logging.getLogger(__name__)
 
-
-
-# ========== ИГРОВОЙ ДВИЖОК ==========
 class GameEngine:
     def __init__(self):
-        self.player_state = {
-            'health': 100,
-            'hunger': 0,
-            'thirst': 0,
-            'inventory': [],
+        self.player_state: Dict[str, Any] = {
+            "health": 100,
+            "hunger": 0,
+            "thirst": 0,
+            "inventory": [],
         }
         self.current_scene = start_scene
 
-    def get_scene(self, scene_id: str) -> dict[str, Any]:
+    def get_scene(self, scene_id: str) -> Dict[str, Any]:
         """Возвращает данные сцены по ID"""
         return SCENES.get(scene_id, {})
 
-    def update_state(self, changes: Optional[dict] = None) -> None:
+    def update_state(self, changes: Optional[Dict[str, int]] = None) -> None:
         """Обновляет состояние игрока"""
         if changes:
             for key, value in changes.items():
@@ -51,59 +52,34 @@ class GameEngine:
 
     def get_status_text(self) -> str:
         """Возвращает текст с текущим состоянием игрока"""
+        inventory = ", ".join(self.player_state["inventory"]) or "пусто"
         return (
             f"❤️ Здоровье: {self.player_state['health']}% | "
             f"🍗 Голод: {self.player_state['hunger']} | "
             f"💧 Жажда: {self.player_state['thirst']}\n"
-            f"🎒 Инвентарь: {', '.join(self.player_state['inventory']) or 'пусто'}"
+            f"🎒 Инвентарь: {inventory}"
         )
 
-# ========== СЦЕНЫ ИГРЫ ==========
+# Пример данных сцен (замените своими)
 # SCENES = {
 #     "start": {
-#         "text": (
-#             "Вы очнулись на берегу необитаемого острова. Песок, пальмы и бескрайний океан. "
-#             "Голова раскалывается, во рту пересохло. Что будете делать?"
-#         ),
+#         "text": "Вы очнулись на берегу необитаемого острова...",
 #         "image": "assets/start.jpg",
 #         "actions": [
-#             {"text": "🔍 Осмотреться вокруг", "next": "look_around"},
-#             {"text": "🌴 Идти к пальмам", "next": "palm_trees"},
-#             {"text": "💧 Искать воду", "next": "find_water"},
+#             {"text": "🔍 Осмотреться", "next": "look_around"},
+#             {"text": "🌴 Идти к пальмам", "next": "palm_trees"}
 #         ],
+#         "state_change": {"thirst": 5}
 #     },
 #     "look_around": {
-#         "text": (
-#             "Осмотревшись, вы видите:\n"
-#             "- Обломки корабля на берегу\n"
-#             "- Группу кокосовых пальм\n"
-#             "- Пещеру в скале неподалеку\n"
-#             "- Следы, ведущие в джунгли"
-#         ),
-#         "image": "assets/look_around.jpg",
+#         "text": "Вы видите обломки корабля и пещеру...",
 #         "actions": [
-#             {"text": "🚢 Подойти к обломкам", "next": "shipwreck"},
-#             {"text": "🥥 Собирать кокосы", "next": "get_coconuts"},
-#             {"text": "🕳️ Исследовать пещеру", "next": "explore_cave"},
-#         ],
-#         "state_change": {"thirst": 5, "hunger": 5},
-#     },
-#     "get_coconuts": {
-#         "text": (
-#             "Вы сбиваете несколько кокосов. Один разбивается, но другой удается расколоть.\n"
-#             "Сок утоляет жажду, мякоть немного унимает голод."
-#         ),
-#         "image": "assets/coconuts.jpg",
-#         "actions": [
-#             {"text": "↩️ Вернуться на берег", "next": "start"},
-#             {"text": "🛠️ Сделать инструмент", "next": "make_tool"},
-#         ],
-#         "state_change": {"thirst": -20, "hunger": -15, "inventory": ["кокос"]},
-#     },
-#     # Добавьте другие сцены по аналогии
+#             {"text": "🚢 Исследовать обломки", "next": "shipwreck"},
+#             {"text": "🕳️ Зайти в пещеру", "next": "cave_entrance"}
+#         ]
+#     }
 # }
 
-# ========== ОБРАБОТЧИКИ ==========
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Обработчик команды /start"""
     user = update.effective_user
@@ -111,106 +87,154 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     
     await update.message.reply_text(
         f"Привет, {user.first_name}! Ты попал на необитаемый остров. "
-        "Тебе нужно выжить как можно дольше.\n"
-        "Используй кнопки для выбора действий."
+        "Тебе нужно выжить как можно дольше."
     )
     
     await show_scene(update, context)
 
-
-async def show_scene(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def show_scene(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Показывает текущую сцену"""
     try:
         game = context.user_data["game"]
         scene = game.get_scene(game.current_scene)
         
-        # Логирование всей сцены для диагностики
-        from pprint import pformat
-        logger.debug(f"Preparing scene:\n{pformat(scene)}")
+        # Формируем текст сообщения
+        full_text = f"{scene['text']}\n\n{game.get_status_text()}"
         
-        # 1. Подготовка текста
-        scene_text = scene.get("text", "NO TEXT PROVIDED")
-        status_text = game.get_status_text()
-        
-        try:
-            full_text = f"{scene_text}\n\n{status_text}"
-            if len(full_text) > 4096:  # Лимит Telegram
-                full_text = f"{scene_text[:3000]}...\n\n{status_text}"
-        except Exception as e:
-            logger.error(f"Text formatting error: {e}")
-            full_text = "Ошибка формирования текста"
-
-        # 2. Подготовка клавиатуры
+        # Создаем клавиатуру
         keyboard = []
         for action in scene.get("actions", []):
-            try:
-                if not isinstance(action.get("next"), str):
-                    raise ValueError(f"Invalid 'next': {action.get('next')}")
-                
-                btn_text = action.get("text", "NO TEXT")
-                if len(btn_text) > 64:  # Лимит Telegram для текста кнопки
-                    btn_text = btn_text[:61] + "..."
-                
-                keyboard.append([InlineKeyboardButton(btn_text, callback_data=action["next"])])
-            except Exception as e:
-                logger.error(f"Invalid button: {action} - {e}")
-
+            if not isinstance(action.get("next"), str):
+                logger.error(f"Invalid action: {action}")
+                continue
+            
+            keyboard.append([
+                InlineKeyboardButton(
+                    text=action["text"],
+                    callback_data=action["next"]
+                )
+            ])
+        
         reply_markup = InlineKeyboardMarkup(keyboard) if keyboard else None
-
-        # 3. Определение сообщения для ответа
+        
+        # Определяем сообщение для ответа
         message = update.callback_query.message if update.callback_query else update.message
         
-        # 4. Отправка контента
-        if update.callback_query:
-            try:
-                await message.edit_text(full_text, reply_markup=reply_markup)
-            except Exception as e:
-                logger.error(f"Can't edit message: {e}")
-                await message.reply_text(full_text, reply_markup=reply_markup)
+        # Отправляем контент
+        if "image" in scene:
+            image_path = Path(os.path.join(base_path, scene["image"]))
+            print(image_path)
+            print(os.path.abspath(image_path))
+            if image_path.exists():
+                with open(image_path, "rb") as photo_file:
+                    if update.callback_query:
+                        await message.edit_text(full_text)
+                        await message.reply_photo(
+                            photo=photo_file,
+                            reply_markup=reply_markup
+                        )
+                    else:
+                        await message.reply_photo(
+                            photo=photo_file,
+                            caption=full_text,
+                            reply_markup=reply_markup
+                        )
+            else:
+                logger.error(f"Image not found: {image_path}")
+                await send_text_message(message, full_text, reply_markup)
         else:
-            await message.reply_text(full_text, reply_markup=reply_markup)
-
+            await send_text_message(message, full_text, reply_markup)
+            
     except Exception as e:
-        logger.critical(f"Fatal scene error: {e}", exc_info=True)
-        if 'message' in locals():
-            await message.reply_text("⚠️ Произошла ошибка. Попробуйте /start")
-        raise
+        logger.error(f"Error in show_scene: {e}", exc_info=True)
+        await send_fallback_message(update, context)
 
+async def send_text_message(
+    message: Message,
+    text: str,
+    reply_markup: Optional[InlineKeyboardMarkup] = None
+) -> None:
+    """Универсальная отправка текстового сообщения"""
+    try:
+        if len(text) > 4096:  # Лимит Telegram
+            text = text[:4000] + "... [сообщение сокращено]"
+        
+        await message.reply_text(
+            text,
+            reply_markup=reply_markup,
+            parse_mode="Markdown"
+        )
+    except Exception as e:
+        logger.error(f"Failed to send text: {e}")
 
 async def handle_action(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Обработчик нажатий на кнопки"""
-    query = update.callback_query
-    await query.answer()
-    
-    game = context.user_data["game"]
-    game.current_scene = query.data
-    
-    # Применяем изменения состояния
-    scene = game.get_scene(game.current_scene)
-    game.update_state(scene.get("state_change"))
-    
-    await show_scene(update, context)
+    try:
+        query = update.callback_query
+        await query.answer()
+        
+        game = context.user_data["game"]
+        game.current_scene = query.data
+        
+        # Применяем изменения состояния
+        scene = game.get_scene(game.current_scene)
+        if "state_change" in scene:
+            game.update_state(scene["state_change"])
+        
+        await show_scene(update, context)
+    except Exception as e:
+        logger.error(f"Error in handle_action: {e}", exc_info=True)
+        await send_fallback_message(update, context)
 
-async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Обработчик ошибок"""
-    logger.error("Exception while handling an update:", exc_info=context.error)
-    
-    if update and hasattr(update, "effective_message"):
-        await update.effective_message.reply_text(
-            "Произошла ошибка. Игра перезапущена. Используйте /start"
+async def send_fallback_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Аварийное сообщение при ошибках"""
+    try:
+        message = update.callback_query.message if update.callback_query else update.message
+        await message.reply_text(
+            "⚠️ Произошла ошибка. Попробуйте /start",
+            parse_mode="Markdown"
         )
+    except Exception as e:
+        logger.critical(f"Critical failure: {e}")
 
-# ========== ЗАПУСК БОТА ==========
+def validate_scenes() -> None:
+    """Проверяет сцены на валидность"""
+    for scene_id, scene in SCENES.items():
+        if "actions" in scene:
+            for i, action in enumerate(scene["actions"]):
+                if not isinstance(action.get("next"), str):
+                    raise ValueError(f"Invalid 'next' in {scene_id} action {i}")
+                if len(action["next"]) > 64:
+                    raise ValueError(f"Callback too long in {scene_id} action {i}")
+
 def main() -> None:
     """Запуск приложения"""
-    application = Application.builder().token("7875367168:AAHQzuShopUDhEJu4mruq7CweE9KSNfdFsk").build()
+    try:
+        validate_scenes()
+        
+        application = Application.builder().token("7875367168:AAHQzuShopUDhEJu4mruq7CweE9KSNfdFsk").build()
+        
+        # Регистрация обработчиков
+        application.add_handler(CommandHandler("start", start))
+        application.add_handler(CallbackQueryHandler(handle_action))
+        application.add_error_handler(error_handler)
+        
+        logger.info("Bot starting...")
+        application.run_polling(drop_pending_updates=True)
+        
+    except Exception as e:
+        logger.critical(f"Failed to start bot: {e}", exc_info=True)
+        raise
+
+async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Глобальный обработчик ошибок"""
+    logger.error("Exception while handling update:", exc_info=context.error)
     
-    # Регистрация обработчиков
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(CallbackQueryHandler(handle_action))
-    application.add_error_handler(error_handler)
-    
-    # Запуск бота
-    application.run_polling()
+    if isinstance(update, Update):
+        if update.callback_query:
+            await update.callback_query.message.reply_text("⚠️ Ошибка. Попробуйте еще раз.")
+        elif update.message:
+            await update.message.reply_text("⚠️ Произошла ошибка. Используйте /start")
 
 if __name__ == "__main__":
     main()

@@ -1,3 +1,4 @@
+image: images/start.jpg
 actions: 
 - text: Собрав остатки сил с трудом открыть глаза и приподнять голову чтобы немного осмотреться...
   next: popitka_otkryt_glaza
