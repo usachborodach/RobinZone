@@ -6,15 +6,15 @@ import random
 
 base_path = os.path.dirname(__file__)
 
-def load_situations():
-    situations = dict()
-    situations_path = os.path.join(base_path, '..', 'situations')
-    for filename in os.listdir(situations_path):
-        filepath = os.path.join(situations_path, filename)
-        situation = yaml.safe_load(open(filepath))
-        situation['text'] = '    ' + remove_slash_n_from_tail(situation['text']).replace('\n', '\n    ')
-        situations[filename.replace('.yml', '')] = situation
-    return situations
+def load_scenes():
+    scenes = dict()
+    scenes_path = os.path.join(base_path, '..', 'scenes')
+    for filename in os.listdir(scenes_path):
+        filepath = os.path.join(scenes_path, filename)
+        scene = yaml.safe_load(open(filepath))
+        scene['text'] = remove_slash_n_from_tail(scene['text']).replace('\n', '\n    ')
+        scenes[filename.replace('.yml', '')] = scene
+    return scenes
 
 def typewrite(text, delay=0.001, random_delay=0.01):
     for char in text:

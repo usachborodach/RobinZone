@@ -4,3 +4,7 @@ text: |
 actions: 
 - text: Сквозь пелену в глазах попытаться осмотреться
   next: popitka_osmotretsa
+state_change:
+  thirst: 1
+  hunger: 1
+  health: -1

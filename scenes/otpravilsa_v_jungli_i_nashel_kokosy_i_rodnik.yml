@@ -10,6 +10,6 @@ text: |
 
 actions: 
 - text: Бить по кокосу камнем
-  next: vskril_kokos_i_nshel_kokosovuyu_vodu
+  next: vskril_kokos_i_nashel_kokosovuyu_vodu
 - text: Сбросить кокос с возвышенности
   next: sbrosil_kokos_i_razbilsa

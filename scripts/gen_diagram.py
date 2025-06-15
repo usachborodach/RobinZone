@@ -1,16 +1,16 @@
 import os
 import common
 
-situations = common.load_situations()
+scenes = common.load_scenes()
 diagram = ['flowchart TD']
 
-for id, situation in situations.items():
+for id, scene in scenes.items():
     object_manifest = f"{id}(\"{id.replace('_', ' ')}\")"
     diagram.append(object_manifest)
-    if 'actions' in situation.keys():
-        if isinstance(situation['actions'], list):
-            for action in situation['actions']:
-                diagram.append(f"{id} -- {action['text']} --> {action['situation']}")
+    if 'actions' in scene.keys():
+        if isinstance(scene['actions'], list):
+            for action in scene['actions']:
+                diagram.append(f"{id} -- {action['text']} --> {action['next']}")
 
 diagram = '\n'.join(diagram)
 base_path = os.path.dirname(__file__)

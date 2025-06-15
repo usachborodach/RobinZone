@@ -1,7 +1,7 @@
 import os
 import common
 base_path = os.path.dirname(__file__)
-SCENES = common.load_situations()
+SCENES = common.load_scenes()
 start_scene = 'nachalo'
 
 
@@ -32,9 +32,9 @@ logger = logging.getLogger(__name__)
 class GameEngine:
     def __init__(self):
         self.player_state: Dict[str, Any] = {
-            "health": 100,
-            "hunger": 0,
-            "thirst": 0,
+            "health": 10,
+            "hunger": 90,
+            "thirst": 90,
             "inventory": [],
         }
         self.current_scene = start_scene
@@ -59,26 +59,6 @@ class GameEngine:
             f"💧 Жажда: {self.player_state['thirst']}\n"
             f"🎒 Инвентарь: {inventory}"
         )
-
-# Пример данных сцен (замените своими)
-# SCENES = {
-#     "start": {
-#         "text": "Вы очнулись на берегу необитаемого острова...",
-#         "image": "assets/start.jpg",
-#         "actions": [
-#             {"text": "🔍 Осмотреться", "next": "look_around"},
-#             {"text": "🌴 Идти к пальмам", "next": "palm_trees"}
-#         ],
-#         "state_change": {"thirst": 5}
-#     },
-#     "look_around": {
-#         "text": "Вы видите обломки корабля и пещеру...",
-#         "actions": [
-#             {"text": "🚢 Исследовать обломки", "next": "shipwreck"},
-#             {"text": "🕳️ Зайти в пещеру", "next": "cave_entrance"}
-#         ]
-#     }
-# }
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Обработчик команды /start"""
@@ -122,7 +102,7 @@ async def show_scene(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
         
         # Отправляем контент
         if "image" in scene:
-            image_path = Path(os.path.join(base_path, scene["image"]))
+            image_path = Path(os.path.join(base_path, '..', 'images', scene["image"]))
             print(image_path)
             print(os.path.abspath(image_path))
             if image_path.exists():
