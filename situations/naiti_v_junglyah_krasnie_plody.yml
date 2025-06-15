@@ -4,8 +4,8 @@ text: |
 
 actions: 
 - text: Карабкаться и сорвать плоды
-  next: Осмотрелся_и_собрал_плоды
+  next: osmotrelsa_i_sorval_plody
 - text: Трясти дерево
-  next: Получил_по_голове_красным_плодом
+  next: poluchil_po_golove_krasnim_plodom
 - text: Пойти дальше
-  next: Пошёл_дальше_и_был_задавлен_пальмой
+  next: poshel_dalshe_i_bil_zadavlen_palmoy

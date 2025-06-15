@@ -12,4 +12,4 @@ text: |
 
 actions:
 - text: Конец игры
-  next: Конец_игры
+  next: konets_igry

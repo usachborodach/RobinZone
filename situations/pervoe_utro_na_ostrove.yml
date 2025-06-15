@@ -5,8 +5,8 @@ text: |
 
 actions: 
 - text: Пойти в джунгли, на поиски воды и пищи
-  next: Найти_в_джунглях_красные_плоды
+  next: naiti_v_junglyah_krasnie_plody
 - text: Осмотреть корабль
-  next: Осмотр_корабля
+  next: osmotr_korablya
 - text: Развести костёр (требуется трут и хворост)
-  next: Развёл_костёр
+  next: razvel_koster

@@ -118,66 +118,62 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await show_scene(update, context)
 
 
-async def show_scene(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Показывает текущую сцену с обработкой ошибок отправки фото"""
-    game = context.user_data["game"]
-    scene = game.get_scene(game.current_scene)
-    print(scene)
-    
-    full_text = f"{scene['text']}\n\n{game.get_status_text()}"
-    
-    # Создаем клавиатуру
-    keyboard = [
-        [InlineKeyboardButton(action["text"], callback_data=action["next"])]
-        for action in scene.get("actions", [])
-            
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-
+async def show_scene(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
-        # Определяем сообщение для ответа
+        game = context.user_data["game"]
+        scene = game.get_scene(game.current_scene)
+        
+        # Логирование всей сцены для диагностики
+        from pprint import pformat
+        logger.debug(f"Preparing scene:\n{pformat(scene)}")
+        
+        # 1. Подготовка текста
+        scene_text = scene.get("text", "NO TEXT PROVIDED")
+        status_text = game.get_status_text()
+        
+        try:
+            full_text = f"{scene_text}\n\n{status_text}"
+            if len(full_text) > 4096:  # Лимит Telegram
+                full_text = f"{scene_text[:3000]}...\n\n{status_text}"
+        except Exception as e:
+            logger.error(f"Text formatting error: {e}")
+            full_text = "Ошибка формирования текста"
+
+        # 2. Подготовка клавиатуры
+        keyboard = []
+        for action in scene.get("actions", []):
+            try:
+                if not isinstance(action.get("next"), str):
+                    raise ValueError(f"Invalid 'next': {action.get('next')}")
+                
+                btn_text = action.get("text", "NO TEXT")
+                if len(btn_text) > 64:  # Лимит Telegram для текста кнопки
+                    btn_text = btn_text[:61] + "..."
+                
+                keyboard.append([InlineKeyboardButton(btn_text, callback_data=action["next"])])
+            except Exception as e:
+                logger.error(f"Invalid button: {action} - {e}")
+
+        reply_markup = InlineKeyboardMarkup(keyboard) if keyboard else None
+
+        # 3. Определение сообщения для ответа
         message = update.callback_query.message if update.callback_query else update.message
         
-        if "image" in scene:
+        # 4. Отправка контента
+        if update.callback_query:
             try:
-                # Открываем файл изображения в бинарном режиме
-                with open(scene["image"], "rb") as photo_file:
-                    if update.callback_query:
-                        # Редактируем существующее сообщение
-                        await message.edit_text(full_text)
-                        await message.reply_photo(
-                            photo=photo_file,
-                            caption="Дополнительное изображение:",
-                            reply_markup=reply_markup
-                        )
-                    else:
-                        # Отправляем новое сообщение
-                        await message.reply_photo(
-                            photo=photo_file,
-                            caption=full_text,
-                            reply_markup=reply_markup
-                        )
-            except FileNotFoundError:
-                logger.error(f"Image file not found: {scene['image']}")
-                await message.reply_text(
-                    "[Изображение не найдено]\n\n" + full_text,
-                    reply_markup=reply_markup
-                )
+                await message.edit_text(full_text, reply_markup=reply_markup)
+            except Exception as e:
+                logger.error(f"Can't edit message: {e}")
+                await message.reply_text(full_text, reply_markup=reply_markup)
         else:
-            if update.callback_query:
-                await message.edit_text(
-                    text=full_text,
-                    reply_markup=reply_markup
-                )
-            else:
-                await message.reply_text(
-                    full_text,
-                    reply_markup=reply_markup
-                )
-                
+            await message.reply_text(full_text, reply_markup=reply_markup)
+
     except Exception as e:
-        logger.error(f"Error in show_scene: {e}")
-        await error_handler(update, context)
+        logger.critical(f"Fatal scene error: {e}", exc_info=True)
+        if 'message' in locals():
+            await message.reply_text("⚠️ Произошла ошибка. Попробуйте /start")
+        raise
 
 
 async def handle_action(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:

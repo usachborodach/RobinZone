@@ -27,4 +27,4 @@ text: |
    
 actions:
 - text: Вернуться на берег
-  next: Первое_утро_на_острове
+  next: pervoe_utro_na_ostrove

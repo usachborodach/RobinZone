@@ -7,6 +7,6 @@ text: |
 
 actions:
 - text: Отправиться в джунгли
-  next: Отправился_в_джунгли_и_нашёл_кокосы_и_родник
+  next: otpravilsa_v_jungli_i_nashel_kokosy_i_rodnik
 - text: Отправиться в море на поиски трюма
-  next: Отправился_в_море_и_погиб_от_акулы
+  next: otpravilsa_v_more_i_pogib_ot_akuli
