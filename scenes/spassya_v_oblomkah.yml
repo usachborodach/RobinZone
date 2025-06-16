@@ -1,3 +1,4 @@
+image: spassya_v_oblomkah.jpg
 actions: 
 - text: Лечь спать
   next: pervoe_utro_na_ostrove
@@ -33,3 +34,8 @@ text: |
   Утром осмотреть обломки тщательнее (может, есть инструменты?)
   Идти в джунгли — искать источник пресной воды
   Развести костёр из обломков (если найдёте трут)
+
+state_change:
+  thirst: -15
+  hunger: -5
+  health: 30

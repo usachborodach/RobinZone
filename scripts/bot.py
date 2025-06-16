@@ -3,7 +3,8 @@ import common
 base_path = os.path.dirname(__file__)
 SCENES = common.load_scenes()
 start_scene = 'nachalo'
-
+TOKEN = '7875367168:AAHQzuShopUDhEJu4mruq7CweE9KSNfdFsk'
+# image_path = Path(os.path.join(base_path, '..', 'images', scene["image"]))
 
 #!/usr/bin/env python3.10
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, Message
@@ -14,6 +15,7 @@ from telegram.ext import (
     ContextTypes,
 )
 from typing import Any, Optional, Dict, List
+import os
 import logging
 from pathlib import Path
 import json
@@ -32,12 +34,13 @@ logger = logging.getLogger(__name__)
 class GameEngine:
     def __init__(self):
         self.player_state: Dict[str, Any] = {
-            "health": 10,
-            "hunger": 90,
-            "thirst": 90,
+            "health": 100,
+            "hunger": 0,
+            "thirst": 0,
             "inventory": [],
         }
         self.current_scene = start_scene
+        self.last_message_id = None  # Для отслеживания последнего сообщения
 
     def get_scene(self, scene_id: str) -> Dict[str, Any]:
         """Возвращает данные сцены по ID"""
@@ -60,10 +63,41 @@ class GameEngine:
             f"🎒 Инвентарь: {inventory}"
         )
 
+# Пример данных сцен (замените своими)
+# SCENES = {
+#     "start": {
+#         "text": "Вы очнулись на берегу необитаемого острова...",
+#         "image": "assets/start.jpg",
+#         "actions": [
+#             {"text": "🔍 Осмотреться", "next": "look_around"},
+#             {"text": "🌴 Идти к пальмам", "next": "palm_trees"}
+#         ],
+#         "state_change": {"thirst": 5}
+#     },
+#     "look_around": {
+#         "text": "Вы видите обломки корабля и пещеру...",
+#         "actions": [
+#             {"text": "🚢 Исследовать обломки", "next": "shipwreck"},
+#             {"text": "🕳️ Зайти в пещеру", "next": "cave_entrance"}
+#         ]
+#     }
+# }
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Обработчик команды /start"""
     user = update.effective_user
     context.user_data["game"] = GameEngine()
+    
+    # Удаляем предыдущее сообщение если есть
+    game = context.user_data["game"]
+    if game.last_message_id:
+        try:
+            await context.bot.delete_message(
+                chat_id=update.effective_chat.id,
+                message_id=game.last_message_id
+            )
+        except Exception as e:
+            logger.warning(f"Could not delete message: {e}")
     
     await update.message.reply_text(
         f"Привет, {user.first_name}! Ты попал на необитаемый остров. "
@@ -73,7 +107,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await show_scene(update, context)
 
 async def show_scene(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Показывает текущую сцену"""
+    """Показывает текущую сцену (всегда новым сообщением)"""
     try:
         game = context.user_data["game"]
         scene = game.get_scene(game.current_scene)
@@ -97,55 +131,47 @@ async def show_scene(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
         
         reply_markup = InlineKeyboardMarkup(keyboard) if keyboard else None
         
-        # Определяем сообщение для ответа
-        message = update.callback_query.message if update.callback_query else update.message
+        # Удаляем предыдущее сообщение если есть
+        if game.last_message_id:
+            try:
+                await context.bot.delete_message(
+                    chat_id=update.effective_chat.id,
+                    message_id=game.last_message_id
+                )
+            except Exception as e:
+                logger.warning(f"Could not delete message: {e}")
         
-        # Отправляем контент
+        # Отправляем новое сообщение
         if "image" in scene:
             image_path = Path(os.path.join(base_path, '..', 'images', scene["image"]))
-            print(image_path)
-            print(os.path.abspath(image_path))
             if image_path.exists():
                 with open(image_path, "rb") as photo_file:
-                    if update.callback_query:
-                        await message.edit_text(full_text)
-                        await message.reply_photo(
-                            photo=photo_file,
-                            reply_markup=reply_markup
-                        )
-                    else:
-                        await message.reply_photo(
-                            photo=photo_file,
-                            caption=full_text,
-                            reply_markup=reply_markup
-                        )
+                    sent_message = await context.bot.send_photo(
+                        chat_id=update.effective_chat.id,
+                        photo=photo_file,
+                        caption=full_text,
+                        reply_markup=reply_markup
+                    )
+                    game.last_message_id = sent_message.message_id
             else:
                 logger.error(f"Image not found: {image_path}")
-                await send_text_message(message, full_text, reply_markup)
+                sent_message = await context.bot.send_message(
+                    chat_id=update.effective_chat.id,
+                    text=full_text,
+                    reply_markup=reply_markup
+                )
+                game.last_message_id = sent_message.message_id
         else:
-            await send_text_message(message, full_text, reply_markup)
+            sent_message = await context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text=full_text,
+                reply_markup=reply_markup
+            )
+            game.last_message_id = sent_message.message_id
             
     except Exception as e:
         logger.error(f"Error in show_scene: {e}", exc_info=True)
         await send_fallback_message(update, context)
-
-async def send_text_message(
-    message: Message,
-    text: str,
-    reply_markup: Optional[InlineKeyboardMarkup] = None
-) -> None:
-    """Универсальная отправка текстового сообщения"""
-    try:
-        if len(text) > 4096:  # Лимит Telegram
-            text = text[:4000] + "... [сообщение сокращено]"
-        
-        await message.reply_text(
-            text,
-            reply_markup=reply_markup,
-            parse_mode="Markdown"
-        )
-    except Exception as e:
-        logger.error(f"Failed to send text: {e}")
 
 async def handle_action(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Обработчик нажатий на кнопки"""
@@ -169,9 +195,9 @@ async def handle_action(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 async def send_fallback_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Аварийное сообщение при ошибках"""
     try:
-        message = update.callback_query.message if update.callback_query else update.message
-        await message.reply_text(
-            "⚠️ Произошла ошибка. Попробуйте /start",
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="⚠️ Произошла ошибка. Попробуйте /start",
             parse_mode="Markdown"
         )
     except Exception as e:
@@ -192,7 +218,7 @@ def main() -> None:
     try:
         validate_scenes()
         
-        application = Application.builder().token("7875367168:AAHQzuShopUDhEJu4mruq7CweE9KSNfdFsk").build()
+        application = Application.builder().token(TOKEN).build()
         
         # Регистрация обработчиков
         application.add_handler(CommandHandler("start", start))
@@ -211,10 +237,13 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> N
     logger.error("Exception while handling update:", exc_info=context.error)
     
     if isinstance(update, Update):
-        if update.callback_query:
-            await update.callback_query.message.reply_text("⚠️ Ошибка. Попробуйте еще раз.")
-        elif update.message:
-            await update.message.reply_text("⚠️ Произошла ошибка. Используйте /start")
+        try:
+            await context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text="⚠️ Ошибка. Попробуйте еще раз или используйте /start"
+            )
+        except Exception as e:
+            logger.error(f"Could not send error message: {e}")
 
 if __name__ == "__main__":
     main()
