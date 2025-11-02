@@ -2,10 +2,12 @@ import os
 import common
 import random
 
-start_situation = 'Начало'
+start_situation = 'nachalo'
 use_typewrite = True
 
-situations = common.load_situations()
+situations = common.load_scenes()
+
+
 current_situation = start_situation
 while True:
     os.system("clear")
@@ -20,4 +22,4 @@ while True:
     for index, action in enumerate(actions):
         print(f'{index + 1}. {action["text"]}')
     choice = int(input('Ваш выбор: ')) - 1
-    current_situation = situations[current_situation]['actions'][choice]['situation']
+    current_situation = situations[current_situation]['actions']['next']
