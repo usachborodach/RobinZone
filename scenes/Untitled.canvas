@@ -1,0 +1,17 @@
+{
+	"nodes":[
+		{"id":"26b5057b6a3da438","type":"text","text":"[[Спасся в обломках]]","x":-820,"y":-399,"width":250,"height":60},
+		{"id":"4589236f1ff7a6a9","type":"text","text":"[[Попытка осмотреться]]","x":-437,"y":-560,"width":215,"height":60},
+		{"id":"8473882a6f493cce","type":"text","text":"[[Попытка открыть глаза]]","x":-446,"y":-700,"width":233,"height":60},
+		{"id":"6d6d3803dc16e92a","type":"text","text":"[[Начало]]","x":-389,"y":-820,"width":120,"height":60},
+		{"id":"6ecb9d4e9ab39b5e","type":"text","text":"[[Загрызли дикие звери]]","x":-444,"y":-399,"width":230,"height":60},
+		{"id":"767fe058a3d49039","type":"text","text":"[[Смыло штормом в океан]]","x":-100,"y":-399,"width":250,"height":60}
+	],
+	"edges":[
+		{"id":"779c11539fc2c03b","fromNode":"6d6d3803dc16e92a","fromSide":"bottom","toNode":"8473882a6f493cce","toSide":"top"},
+		{"id":"aa0fa448a4f9b06e","fromNode":"8473882a6f493cce","fromSide":"bottom","toNode":"4589236f1ff7a6a9","toSide":"top"},
+		{"id":"26a64b456737dad6","fromNode":"4589236f1ff7a6a9","fromSide":"bottom","toNode":"26b5057b6a3da438","toSide":"top"},
+		{"id":"5628f6189cc17fab","fromNode":"4589236f1ff7a6a9","fromSide":"bottom","toNode":"6ecb9d4e9ab39b5e","toSide":"top"},
+		{"id":"42b092ebd39a76dd","fromNode":"4589236f1ff7a6a9","fromSide":"bottom","toNode":"767fe058a3d49039","toSide":"top"}
+	]
+}
